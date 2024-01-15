@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Python things
+.venv
+
+# VIM thins
+*.swp

@@ -45,12 +45,13 @@ class CameraServer:
         connection_events = []
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind("0.0.0.0", 12345)
+            s.bind(("0.0.0.0", 12345))
             s.listen()
             while accepted := s.accept():
                 conn, addr = accepted
                 stream = conn.makefile("wb")
                 filestream = FileOutput(stream)
+                filestream.start()
                 with self.encoder_lock:
                     self.encoder.output += [filestream]
                 filestream.connectiondead = lambda _: print(_) and self.event.set()
@@ -59,8 +60,8 @@ class CameraServer:
     # Start streaming
     def start(self):
         # picam2.start_preview(Preview.DRM)
-        self.picam2.start_encoder(self.encoder)
         self.picam2.start()
+        self.picam2.start_encoder(self.encoder)
 
     def stop(self):
         self.picam2.stop_encoder()

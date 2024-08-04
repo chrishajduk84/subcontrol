@@ -48,13 +48,23 @@ class CameraServer:
             s.bind(("0.0.0.0", 12345))
             s.listen()
             while accepted := s.accept():
+                print("Connected")
                 conn, addr = accepted
                 stream = conn.makefile("wb")
                 filestream = FileOutput(stream)
                 filestream.start()
                 with self.encoder_lock:
-                    self.encoder.output += [filestream]
-                filestream.connectiondead = lambda _: print(_) and self.event.set()
+                    if isinstance(self.encoder.output, list):
+                        self.encoder.output += [filestream]
+                    else:
+                        self.encoder.output = [self.encoder.output, filestream]
+
+                def remove_output_object():
+                    if isinstance(self.encoder.output, list):
+                        self.encoder.output.remove(filestream)
+                    else:
+                        self.encoder.output = []
+                filestream.connectiondead = lambda _: print(f"Connection has been closed: {_}") or remove_output_object() and self.event.set()
 
 
     # Start streaming
@@ -81,12 +91,14 @@ class CameraServer:
 if __name__ == "__main__":
     cs = CameraServer()
     cs.start()
-    for i in range(10):
-        time.sleep(1)
-        print(i)
-    cs.start_save()
-    for i in range(10):
-        time.sleep(1)
-        print(i)
-    cs.stop_save()
+    while True:
+        pass
+    #for i in range(10):
+    #    time.sleep(1)
+    #    print(i)
+    #cs.start_save()
+    #for i in range(10):
+    #    time.sleep(1)
+    #    print(i)
+    #cs.stop_save()
 

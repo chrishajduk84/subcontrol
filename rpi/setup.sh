@@ -13,4 +13,8 @@ chmod +x install_pivariety_pkgs.sh
 ./install_pivariety_pkgs.sh -p libcamera_apps
 ./install_pivariety_pkgs.sh -p imx708_b0311_kernel_driver
 
+
+# Quality of life stuff
+sudo apt install vim
+
 reboot

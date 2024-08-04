@@ -81,8 +81,9 @@ class CameraServer:
 
     # Start streaming
     def start(self):
-        self.picam2.start_preview(Preview.DRM)
+        #self.picam2.start_preview(Preview.DRM)
         self.picam2.start()
+        # Note, encoder appears to add ~1 second delay
         self.picam2.start_encoder(self.encoder)
 
     def stop(self):

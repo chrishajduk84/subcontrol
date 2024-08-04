@@ -42,34 +42,46 @@ class CameraServer:
         self.picam2.configure(config)
 
     def accept_connections(self):
-        connection_events = []
+        #MAX_CONNECTIONS = 9999 -> May need to be used if a large amount of connects/disconnects happen, don't want to exceed integer limit for conn_id_counter
+        conn_id_counter = 0
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind(("0.0.0.0", 12345))
             s.listen()
             while accepted := s.accept():
-                print("Connected")
+
                 conn, addr = accepted
                 stream = conn.makefile("wb")
                 filestream = FileOutput(stream)
+                conn_id_counter += 1
+                setattr(filestream, "id", conn_id_counter)
                 filestream.start()
                 with self.encoder_lock:
                     if isinstance(self.encoder.output, list):
                         self.encoder.output += [filestream]
                     else:
                         self.encoder.output = [self.encoder.output, filestream]
+                print(f"Connected with id ({conn_id_counter})")
 
-                def remove_output_object():
+                def remove_output_object(id_to_remove):
+                    print(f"Requesting to remove: {id_to_remove}")
+                    for i in self.encoder.output:
+                        print(f"{i} - {i.id if hasattr(i, 'id') else None}")
                     if isinstance(self.encoder.output, list):
-                        self.encoder.output.remove(filestream)
+                        # find the correct list item
+                        for i in self.encoder.output:
+                            if hasattr(i, "id") and i.id == id_to_remove:
+                                print(f"Removed with id: {id_to_remove}")
+                                self.encoder.output.remove(i)
                     else:
                         self.encoder.output = []
-                filestream.connectiondead = lambda _: print(f"Connection has been closed: {_}") or remove_output_object() and self.event.set()
-
+                def connectiondead_wrapper(conn_id):
+                    return lambda _: print(f"Connection has been closed for id ({conn_id}): {_}") or remove_output_object(conn_id) and self.event.set()
+                filestream.connectiondead = connectiondead_wrapper(conn_id_counter) 
 
     # Start streaming
     def start(self):
-        # picam2.start_preview(Preview.DRM)
+        self.picam2.start_preview(Preview.DRM)
         self.picam2.start()
         self.picam2.start_encoder(self.encoder)
 
